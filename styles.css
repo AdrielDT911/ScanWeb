@@ -31,6 +31,38 @@ p {
     margin-bottom: 20px;
 }
 
+button {
+    padding: 12px 20px;
+    background-color: #1d3557;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    width: 100%;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    font-size: 1rem;
+    font-weight: 500;
+}
+
+button:hover {
+    background-color: #16324f;
+}
+
+input[type="file"] {
+    padding: 12px;
+    background-color: white;
+    border: 1px solid #dfe6e9;
+    border-radius: 5px;
+    width: 100%;
+    cursor: pointer;
+    font-size: 0.95rem;
+    color: #2d3436;
+}
+
+input[type="file"]:hover {
+    border-color: #a4b0be;
+}
+
 /* Contenedor principal */
 .container {
     width: 100%;
