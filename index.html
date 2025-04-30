@@ -1,20 +1,25 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <meta name="description" content="Escaneo de código CDC o QR de factura electrónica."/>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Escaneo de facturas utilizando tecnología QR para capturar IDs de documentos.">
+    <meta name="author" content="Tu Nombre o Empresa">
+    <meta name="robots" content="index, follow">
     <title>Escaneo de Factura</title>
     <link rel="stylesheet" href="styles.css">
 </head>
+
 <body>
+
     <div class="container">
-        <h1>Escanea tu factura electrónica</h1>
-        <p>Apunta la cámara al código QR o al CDC (44 dígitos)</p>
-        <div id="qr-reader" style="width: 100%; height: 100%;"></div>
+        <h1>Escaneo de Factura</h1>
+        <p id="app-info">Escanea el código QR de la factura electrónica</p>
     </div>
 
-    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     <script src="scripts.js"></script>
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 </body>
+
 </html>
