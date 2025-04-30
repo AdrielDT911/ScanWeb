@@ -15,7 +15,20 @@
 
     <div class="container">
         <h1>Escaneo de Factura</h1>
-        <p id="app-info">Escanea el código QR de la factura electrónica</p>
+        <!-- Mostramos los datos capturados -->
+        <p id="app-info">Cargando información...</p>
+
+        <!-- Botón para abrir la cámara -->
+        <button id="openCameraButton">Abrir Cámara</button>
+
+        <!-- Modal para la cámara -->
+        <div id="cameraModal" class="modal" role="dialog" aria-labelledby="cameraModalLabel" aria-hidden="true">
+            <div class="modal-content">
+                <p id="cameraModalLabel">Acerca la cámara al código QR</p>
+                <div id="qr-reader" style="width: 100%; height: 50%;"></div>
+                <button id="cancelButton" aria-label="Cancelar escaneo">Cancelar</button>
+            </div>
+        </div>
     </div>
 
     <script src="scripts.js"></script>
