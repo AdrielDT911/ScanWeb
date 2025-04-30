@@ -6,7 +6,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const appPageId = params.get('app_page_id');
 
     // Mostrar los datos en el HTML
-    document.querySelector('#app-info').textContent = ID de la app: ${appId}, Usuario: ${appUser}, Página: ${appPageId};
+    document.querySelector('#app-info').textContent = `ID de la app: ${appId}, Usuario: ${appUser}, Página: ${appPageId}`;
     
     // Agregar funcionalidad al botón
     document.getElementById('openCameraButton').addEventListener('click', abrirCamara);
