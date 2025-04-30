@@ -64,24 +64,23 @@ function procesarQr(decodedText, html5QrCode) {
     try {
         const qrUrl = new URL(decodedText);
         const cdcid = qrUrl.searchParams.get("Id");
+        const qrId = qrUrl.searchParams.get("qr_id"); // Obtenemos el qr_id del QR
 
-        if (!cdcid) {
-            alert("No se encontró un ID válido en el QR.");
+        if (!cdcid || !qrId) {
+            alert("No se encontró un ID o qr_id válido en el QR.");
             return;
         }
 
         alert("ID capturado: " + cdcid);
 
-        const qrId = qrUrl.searchParams.get("qr_id"); // <-- Obtenemos el codigo del qr
         fetch("https://qr-api-production-adac.up.railway.app/qr/guardar-cdc", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ 
-                qr_id: parseInt(qrId), // 🔥 Necesario
-                cdc_id: cdcid 
+            body: JSON.stringify({
+                cdc_id: cdcid,
+                qr_id: parseInt(qrId) // Enviar qr_id junto con cdc_id
             })
         })
-
         .then(res => res.json())
         .then(data => {
             alert("ID guardado y enviado correctamente.");
