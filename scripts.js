@@ -64,10 +64,13 @@ function procesarQr(decodedText, html5QrCode) {
     try {
         const qrUrl = new URL(decodedText);
         const cdcid = qrUrl.searchParams.get("Id");
-        const qrId = qrUrl.searchParams.get("qr_id"); // Obtenemos el qr_id del QR
+
+        // Obtener el qr_id desde la URL inicial de la página (donde vino del QR generado)
+        const currentParams = new URLSearchParams(window.location.search);
+        const qrId = currentParams.get("qr_id");
 
         if (!cdcid || !qrId) {
-            alert("No se encontró un ID o qr_id válido en el QR.");
+            alert("No se encontró un ID o qr_id válido.");
             return;
         }
 
