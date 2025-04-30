@@ -11,7 +11,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     html5QrCode.start(
         { facingMode: "environment" },
-        { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0, disableFlip: true },
+        { fps: 10, qrbox: { width: 200, height: 200 }, aspectRatio: 1.0, disableFlip: true },
         (decodedText, decodedResult) => {
             console.log("Detectado:", decodedText);
 
