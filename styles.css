@@ -12,11 +12,11 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 40px;
+    padding: 20px;
 }
 
 .container {
-    max-width: 600px;
+    max-width: 800px;
     width: 100%;
     background: white;
     padding: 30px;
@@ -26,7 +26,7 @@ body {
 }
 
 h1 {
-    font-size: 1.8rem;
+    font-size: 2rem;
     margin-bottom: 10px;
 }
 
@@ -38,7 +38,33 @@ p {
 
 #qr-reader {
     width: 100%;
-    max-width: 400px;
-    height: 300px;
-    margin: 0 auto;
+    height: 80vh; /* Ampliado para capturar más área */
+    max-height: 600px;
+    margin: 0 auto 20px auto;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+
+#scan-cdc-btn {
+    background-color: #0984e3;
+    color: white;
+    padding: 12px 20px;
+    font-size: 1rem;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    margin-bottom: 20px;
+    transition: background-color 0.3s;
+}
+
+#scan-cdc-btn:hover {
+    background-color: #0077cc;
+}
+
+.result {
+    font-weight: bold;
+    color: #27ae60;
+    margin-top: 10px;
+    word-break: break-word;
 }
