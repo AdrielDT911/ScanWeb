@@ -1,25 +1,42 @@
 import QrScanner from "https://unpkg.com/qr-scanner@1.4.2/qr-scanner.min.js";
 
+// Configurar el Worker Path para la librería
 QrScanner.WORKER_PATH = 'https://unpkg.com/qr-scanner@1.4.2/qr-scanner-worker.min.js';
 
-document.addEventListener("DOMContentLoaded", () => {
-    const video = document.getElementById('qr-video');
+document.addEventListener("DOMContentLoaded", async () => {
+    // Intentamos obtener la cámara y pedir los permisos
+    const videoElement = document.getElementById('qr-video');
 
-    const qrScanner = new QrScanner(video, result => {
-        console.log('QR detectado:', result);
-        procesarQr(result);
-        qrScanner.stop();
-    }, {
-        returnDetailedScanResult: true
-    });
+    try {
+        // Intentar acceder a la cámara y obtener permisos
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+        videoElement.srcObject = stream;
 
-    qrScanner.start().catch(err => {
-        console.error("Error al iniciar el escáner:", err);
-    });
+        // Iniciar el escaneo del QR
+        const qrScanner = new QrScanner(videoElement, result => {
+            console.log('QR detectado:', result);
+            procesarQr(result);
+            qrScanner.stop();
+        }, {
+            returnDetailedScanResult: true,
+            highlightScanRegion: true,
+            highlightCodeOutline: true
+        });
+
+        // Iniciar el escáner
+        qrScanner.start().catch(err => {
+            console.error("Error al iniciar el escáner:", err);
+        });
+
+    } catch (err) {
+        console.error("Error al acceder a la cámara:", err);
+        alert("Se requiere permiso para acceder a la cámara.");
+    }
 });
 
 function procesarQr(decodedText) {
     try {
+        // Asegúrate de que el QR sea una URL válida
         const qrUrl = new URL(decodedText);
         const cdcid = qrUrl.searchParams.get("Id");
         const qrId = qrUrl.searchParams.get("qr_id");
