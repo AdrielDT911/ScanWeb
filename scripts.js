@@ -1,86 +1,73 @@
-import { BrowserQRCodeReader } from 'https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.1/+esm';
+import jsQR from "https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.mjs";
 
-let qrReader;
-let videoInputDeviceId;
+const video = document.getElementById("qr-video");
+const canvas = document.getElementById("qr-canvas");
+const context = canvas.getContext("2d");
 
-document.addEventListener("DOMContentLoaded", async () => {
-    const params = new URLSearchParams(window.location.search);
-    const appId = params.get('app_id');
-    const appUser = params.get('app_user');
-    const appPageId = params.get('app_page_id');
-    document.querySelector('#app-info').textContent = `ID de la app: ${appId}, Usuario: ${appUser}, Página: ${appPageId}`;
-
-    document.getElementById('openCameraButton').addEventListener('click', abrirCamara);
-    document.getElementById('cancelButton').addEventListener('click', cerrarCamara);
-});
-
-async function abrirCamara() {
-    const modal = document.getElementById("cameraModal");
-    mostrarModal(modal);
-
-    qrReader = new BrowserQRCodeReader();
-
+async function startCamera() {
     try {
-        const videoInputDevices = await BrowserQRCodeReader.listVideoInputDevices();
-        videoInputDeviceId = videoInputDevices[0].deviceId;
-
-        const videoElement = document.getElementById('video');
-        const result = await qrReader.decodeOnceFromVideoDevice(videoInputDeviceId, videoElement);
-
-        console.log("QR detectado:", result.text);
-        procesarQr(result.text);
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+        video.srcObject = stream;
+        requestAnimationFrame(scanFrame);
     } catch (err) {
-        alert("Error al escanear QR: " + err.message);
-        cerrarCamara();
+        alert("No se pudo acceder a la cámara: " + err.message);
     }
 }
 
-function mostrarModal(modal) {
-    modal.classList.add("show");
-}
+function scanFrame() {
+    if (video.readyState === video.HAVE_ENOUGH_DATA) {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+        const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "dontInvert" });
 
-function cerrarCamara() {
-    const modal = document.getElementById("cameraModal");
-    modal.classList.remove("show");
+        if (code) {
+            drawBox(code.location);
+            const qrText = code.data;
+            console.log("QR Detectado:", qrText);
 
-    if (qrReader) {
-        qrReader.reset();
-    }
-}
+            // Obtener el cdc_id de la URL del QR
+            const qrUrl = new URL(qrText);
+            const cdcId = qrUrl.searchParams.get("Id");
+            const qrId = qrUrl.searchParams.get("qr_id");
 
-function procesarQr(decodedText) {
-    try {
-        const qrUrl = new URL(decodedText);
-        const cdcid = qrUrl.searchParams.get("Id");
-        const currentParams = new URLSearchParams(window.location.search);
-        const qrId = currentParams.get("qr_id");
+            if (!cdcId || !qrId) {
+                alert("QR inválido");
+                return;
+            }
 
-        if (!cdcid || !qrId) {
-            alert("No se encontró un ID o qr_id válido.");
-            return;
-        }
-
-        alert("ID capturado: " + cdcid);
-
-        fetch("https://qr-api-production-adac.up.railway.app/qr/guardar-cdc", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                cdc_id: cdcid,
-                qr_id: parseInt(qrId)
+            // Enviar a la API
+            fetch("https://qr-api-production-adac.up.railway.app/qr/guardar-cdc", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ cdc_id: cdcId, qr_id: parseInt(qrId) })
             })
-        })
-        .then(res => res.json())
-        .then(data => {
-            alert("ID guardado y enviado correctamente.");
-        })
-        .catch(err => {
-            alert("Error al enviar el ID: " + err.message);
-        });
+            .then(res => res.json())
+            .then(data => {
+                alert("Código leído y enviado correctamente.");
+                window.location.href = "/"; // Redirige a home o a donde quieras
+            })
+            .catch(err => {
+                alert("Error al enviar el QR: " + err.message);
+            });
 
-        cerrarCamara();
-    } catch (e) {
-        alert("Error al procesar el QR: " + e.message);
-        cerrarCamara();
+            return; // Detiene el loop tras escanear
+        }
     }
+    requestAnimationFrame(scanFrame);
 }
+
+function drawBox(location) {
+    context.beginPath();
+    context.moveTo(location.topLeftCorner.x, location.topLeftCorner.y);
+    context.lineTo(location.topRightCorner.x, location.topRightCorner.y);
+    context.lineTo(location.bottomRightCorner.x, location.bottomRightCorner.y);
+    context.lineTo(location.bottomLeftCorner.x, location.bottomLeftCorner.y);
+    context.closePath();
+    context.lineWidth = 4;
+    context.strokeStyle = "#00FF00";
+    context.stroke();
+}
+
+window.addEventListener("DOMContentLoaded", startCamera);
