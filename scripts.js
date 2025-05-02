@@ -1,4 +1,4 @@
-let codeReader = null;
+import { BrowserQRCodeReader } from '@zxing/browser';
 
 document.addEventListener("DOMContentLoaded", () => {
     const params = new URLSearchParams(window.location.search);
@@ -11,17 +11,22 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById('cancelButton').addEventListener('click', cerrarCamara);
 });
 
+let qrReader = null;
+let videoElement = null;
+
 async function abrirCamara() {
     const modal = document.getElementById("cameraModal");
-    const video = document.getElementById("video");
+    videoElement = document.getElementById("video");
     mostrarModal(modal);
 
-    codeReader = new ZXing.BrowserQRCodeReader();
-    try {
-        const devices = await ZXing.BrowserQRCodeReader.listVideoInputDevices();
-        const selectedDeviceId = devices[0].deviceId;
+    qrReader = new BrowserQRCodeReader();
 
-        codeReader.decodeFromVideoDevice(selectedDeviceId, video, (result, err) => {
+    try {
+        const devices = await BrowserQRCodeReader.listVideoInputDevices();
+        if (devices.length === 0) throw new Error("No se encontraron cámaras.");
+        
+        const selectedDeviceId = devices[0].deviceId;
+        await qrReader.decodeFromVideoDevice(selectedDeviceId, videoElement, (result, err) => {
             if (result) {
                 console.log("QR detectado:", result.getText());
                 procesarQr(result.getText());
@@ -37,8 +42,8 @@ function cerrarCamara() {
     const modal = document.getElementById("cameraModal");
     modal.classList.remove("show");
 
-    if (codeReader) {
-        codeReader.reset();
+    if (qrReader) {
+        qrReader.reset();
     }
 }
 
