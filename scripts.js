@@ -7,9 +7,6 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
     }
 
-    // Mostrar los datos en el HTML
-    document.querySelector('#app-info').textContent = `QR_ID: ${qrId}`;
-
     // Iniciar la cámara automáticamente
     abrirCamara();
 });
@@ -27,7 +24,7 @@ function abrirCamara() {
     // Inicia el escáner de QR
     html5QrCode.start(
         { facingMode: "environment" },
-        { fps: 10, qrbox: { width: 200, height: 200 }, aspectRatio: 1.0, disableFlip: true},
+        { fps: 10, qrbox: { width: 300, height: 300 }, aspectRatio: 1.0, disableFlip: true},
         (decodedText, decodedResult) => {
             console.log("QR detectado:", decodedText);
             procesarQr(decodedText, html5QrCode);
