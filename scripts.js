@@ -1,6 +1,9 @@
-import { BrowserQRCodeReader } from '@zxing/browser';
+import { BrowserQRCodeReader } from 'https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.1/+esm';
 
-document.addEventListener("DOMContentLoaded", () => {
+let qrReader;
+let videoInputDeviceId;
+
+document.addEventListener("DOMContentLoaded", async () => {
     const params = new URLSearchParams(window.location.search);
     const appId = params.get('app_id');
     const appUser = params.get('app_user');
@@ -11,31 +14,29 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById('cancelButton').addEventListener('click', cerrarCamara);
 });
 
-let qrReader = null;
-let videoElement = null;
-
 async function abrirCamara() {
     const modal = document.getElementById("cameraModal");
-    videoElement = document.getElementById("video");
     mostrarModal(modal);
 
     qrReader = new BrowserQRCodeReader();
 
     try {
-        const devices = await BrowserQRCodeReader.listVideoInputDevices();
-        if (devices.length === 0) throw new Error("No se encontraron cámaras.");
-        
-        const selectedDeviceId = devices[0].deviceId;
-        await qrReader.decodeFromVideoDevice(selectedDeviceId, videoElement, (result, err) => {
-            if (result) {
-                console.log("QR detectado:", result.getText());
-                procesarQr(result.getText());
-            }
-        });
+        const videoInputDevices = await BrowserQRCodeReader.listVideoInputDevices();
+        videoInputDeviceId = videoInputDevices[0].deviceId;
+
+        const videoElement = document.getElementById('video');
+        const result = await qrReader.decodeOnceFromVideoDevice(videoInputDeviceId, videoElement);
+
+        console.log("QR detectado:", result.text);
+        procesarQr(result.text);
     } catch (err) {
-        alert("Error accediendo a la cámara: " + err.message);
+        alert("Error al escanear QR: " + err.message);
         cerrarCamara();
     }
+}
+
+function mostrarModal(modal) {
+    modal.classList.add("show");
 }
 
 function cerrarCamara() {
@@ -47,15 +48,10 @@ function cerrarCamara() {
     }
 }
 
-function mostrarModal(modal) {
-    modal.classList.add("show");
-}
-
 function procesarQr(decodedText) {
     try {
         const qrUrl = new URL(decodedText);
         const cdcid = qrUrl.searchParams.get("Id");
-
         const currentParams = new URLSearchParams(window.location.search);
         const qrId = currentParams.get("qr_id");
 
@@ -85,5 +81,6 @@ function procesarQr(decodedText) {
         cerrarCamara();
     } catch (e) {
         alert("Error al procesar el QR: " + e.message);
+        cerrarCamara();
     }
 }
