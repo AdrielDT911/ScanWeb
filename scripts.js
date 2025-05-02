@@ -1,83 +1,84 @@
+let codeReader = null;
+
 document.addEventListener("DOMContentLoaded", () => {
     const params = new URLSearchParams(window.location.search);
-    const qrId = params.get('qr_id');
+    const appId = params.get('app_id');
+    const appUser = params.get('app_user');
+    const appPageId = params.get('app_page_id');
+    document.querySelector('#app-info').textContent = `ID de la app: ${appId}, Usuario: ${appUser}, Página: ${appPageId}`;
 
-    if (!qrId) {
-        alert("qr_id no proporcionado en la URL.");
-        return;
-    }
-
-    const html5QrCode = new Html5Qrcode("qr-reader");
-
-    const config = {
-        fps: 10,
-        qrbox: function(viewfinderWidth, viewfinderHeight) {
-            let minEdgePercentage = 0.7;
-            let minEdgeSize = Math.min(viewfinderWidth, viewfinderHeight);
-            let qrboxSize = Math.floor(minEdgeSize * minEdgePercentage);
-            return { width: qrboxSize, height: qrboxSize };
-        },
-        videoConstraints: {
-            facingMode: { exact: "environment" },
-            aspectRatio: window.innerWidth / window.innerHeight
-        }
-    };
-
-    const onScanSuccess = (decodedText, decodedResult) => {
-        console.log("Código detectado:", decodedText);
-        html5QrCode.stop().then(() => {
-            procesarCodigo(decodedText, qrId);
-        }).catch(err => {
-            console.error("Error al detener el escáner:", err);
-        });
-    };
-
-    const onScanFailure = (error) => {
-        // Puedes manejar errores de escaneo aquí si lo deseas
-    };
-
-    html5QrCode.start(
-        { facingMode: { exact: "environment" } },
-        config,
-        onScanSuccess,
-        onScanFailure
-    ).catch(err => {
-        console.error("Error al iniciar el escáner:", err);
-    });
+    document.getElementById('openCameraButton').addEventListener('click', abrirCamara);
+    document.getElementById('cancelButton').addEventListener('click', cerrarCamara);
 });
 
-function procesarCodigo(decodedText, qrId) {
-    let cdcId = null;
+async function abrirCamara() {
+    const modal = document.getElementById("cameraModal");
+    const video = document.getElementById("video");
+    mostrarModal(modal);
 
+    codeReader = new ZXing.BrowserQRCodeReader();
     try {
-        const url = new URL(decodedText);
-        cdcId = url.searchParams.get("Id");
-    } catch (e) {
-        // No es una URL, intentar extraer CDC de texto plano
-        const cdcMatch = decodedText.match(/CDC[:\s]*([\d\s]{44,})/i);
-        if (cdcMatch) {
-            cdcId = cdcMatch[1].replace(/\s+/g, '');
+        const devices = await ZXing.BrowserQRCodeReader.listVideoInputDevices();
+        const selectedDeviceId = devices[0].deviceId;
+
+        codeReader.decodeFromVideoDevice(selectedDeviceId, video, (result, err) => {
+            if (result) {
+                console.log("QR detectado:", result.getText());
+                procesarQr(result.getText());
+            }
+        });
+    } catch (err) {
+        alert("Error accediendo a la cámara: " + err.message);
+        cerrarCamara();
+    }
+}
+
+function cerrarCamara() {
+    const modal = document.getElementById("cameraModal");
+    modal.classList.remove("show");
+
+    if (codeReader) {
+        codeReader.reset();
+    }
+}
+
+function mostrarModal(modal) {
+    modal.classList.add("show");
+}
+
+function procesarQr(decodedText) {
+    try {
+        const qrUrl = new URL(decodedText);
+        const cdcid = qrUrl.searchParams.get("Id");
+
+        const currentParams = new URLSearchParams(window.location.search);
+        const qrId = currentParams.get("qr_id");
+
+        if (!cdcid || !qrId) {
+            alert("No se encontró un ID o qr_id válido.");
+            return;
         }
-    }
 
-    if (!cdcId) {
-        alert("No se pudo extraer el CDC del código escaneado.");
-        return;
-    }
+        alert("ID capturado: " + cdcid);
 
-    fetch("https://qr-api-production-adac.up.railway.app/qr/guardar-cdc", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            cdc_id: cdcId,
-            qr_id: parseInt(qrId)
+        fetch("https://qr-api-production-adac.up.railway.app/qr/guardar-cdc", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                cdc_id: cdcid,
+                qr_id: parseInt(qrId)
+            })
         })
-    })
-    .then(res => res.json())
-    .then(data => {
-        alert("CDC guardado y enviado correctamente.");
-    })
-    .catch(err => {
-        alert("Error al enviar el CDC: " + err.message);
-    });
+        .then(res => res.json())
+        .then(data => {
+            alert("ID guardado y enviado correctamente.");
+        })
+        .catch(err => {
+            alert("Error al enviar el ID: " + err.message);
+        });
+
+        cerrarCamara();
+    } catch (e) {
+        alert("Error al procesar el QR: " + e.message);
+    }
 }
