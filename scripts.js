@@ -1,64 +1,70 @@
-document.addEventListener("DOMContentLoaded", () => {
-    const params = new URLSearchParams(window.location.search);
-    const qrId = params.get('qr_id');
+const qrId = parseInt(new URLSearchParams(window.location.search).get('qr_id'));
+const resultBox = document.getElementById('result');
 
-    if (!qrId) {
-        alert("No se encontró qr_id en la URL");
-        return;
+const qrScanner = new Html5Qrcode("qr-reader");
+
+// Escaneo de QR
+qrScanner.start(
+    { facingMode: "environment" },
+    {
+        fps: 10,
+        qrbox: { width: 400, height: 400 }
+    },
+    (decodedText) => {
+        qrScanner.stop(); // detener después de primer escaneo
+        guardarEnServidor(decodedText, 'qr');
+    },
+    (error) => {
+        // silencioso
     }
-
-    const html5QrCode = new Html5Qrcode("qr-reader");
-
-    html5QrCode.start(
-        { facingMode: "environment" },
-        { fps: 10, qrbox: { width: 250, height: 250 } },
-        (decodedText, decodedResult) => {
-            console.log("Escaneado:", decodedText);
-            procesarTexto(decodedText, qrId, html5QrCode);
-        },
-        (err) => {
-            console.warn("Error escaneo:", err);
-        }
-    ).catch((err) => {
-        console.error("Error al iniciar cámara:", err);
-    });
+).catch(err => {
+    console.error("Error iniciando cámara:", err);
 });
 
-function procesarTexto(texto, qrId, html5QrCode) {
-    let cdcId = null;
+// OCR de CDC impreso
+document.getElementById('scan-cdc-btn').addEventListener('click', async () => {
+    const video = document.querySelector("video");
+    if (!video) return alert("Cámara no disponible.");
 
-    // Si es un link con ?Id=...
-    try {
-        const parsed = new URL(texto);
-        cdcId = parsed.searchParams.get("Id");
-    } catch (e) {
-        // Si es texto plano, buscar CDC manualmente
-        const match = texto.match(/CDC[:\s]*([\d\s]{44,})/i);
-        if (match) {
-            cdcId = match[1].replace(/\s/g, '');
-        }
-    }
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
 
-    if (!cdcId || cdcId.length < 30) {
-        alert("No se detectó un CDC válido.");
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    resultBox.innerText = "Leyendo CDC, por favor espera...";
+
+    const { data: { text } } = await Tesseract.recognize(canvas, 'eng', {
+        tessedit_char_whitelist: '0123456789'
+    });
+
+    const match = text.match(/CDC[:\s]*([\d\s]{40,})/i);
+    if (!match) {
+        resultBox.innerText = "No se detectó CDC. Intenta enfocar mejor.";
         return;
     }
+
+    const cdcId = match[1].replace(/\s+/g, '');
+    guardarEnServidor(cdcId, 'cdc');
+});
+
+function guardarEnServidor(value, tipo) {
+    const body = {
+        qr_id: qrId,
+        cdc_id: tipo === 'cdc' ? value : undefined
+    };
 
     fetch("https://qr-api-production-adac.up.railway.app/qr/guardar-cdc", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            cdc_id: cdcId,
-            qr_id: parseInt(qrId)
-        })
+        body: JSON.stringify(body)
     })
     .then(res => res.json())
     .then(data => {
-        alert("CDC enviado correctamente.");
+        resultBox.innerText = `✅ ${tipo.toUpperCase()} guardado correctamente.`;
     })
     .catch(err => {
-        alert("Error al enviar el CDC: " + err.message);
+        resultBox.innerText = `❌ Error al guardar ${tipo.toUpperCase()}: ` + err.message;
     });
-
-    html5QrCode.stop().catch(() => {});
 }
