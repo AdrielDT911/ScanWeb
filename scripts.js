@@ -1,43 +1,52 @@
-import { BrowserMultiFormatReader } from 'https://cdn.jsdelivr.net/npm/@zxing/library@0.19.1/esm/index.min.js';
+import QrScanner from "https://unpkg.com/qr-scanner@1.4.2/qr-scanner.min.js";
 
-document.addEventListener('DOMContentLoaded', async () => {
-    const video = document.getElementById('video');
-    const codeReader = new BrowserMultiFormatReader();
-    
+QrScanner.WORKER_PATH = 'https://unpkg.com/qr-scanner@1.4.2/qr-scanner-worker.min.js';
+
+document.addEventListener("DOMContentLoaded", () => {
+    const video = document.getElementById('qr-video');
+
+    const qrScanner = new QrScanner(video, result => {
+        console.log('QR detectado:', result);
+        procesarQr(result);
+        qrScanner.stop();
+    }, {
+        returnDetailedScanResult: true
+    });
+
+    qrScanner.start().catch(err => {
+        console.error("Error al iniciar el escáner:", err);
+    });
+});
+
+function procesarQr(decodedText) {
     try {
-        const devices = await codeReader.listVideoInputDevices();
-        const selectedDeviceId = devices[0].deviceId;
+        const qrUrl = new URL(decodedText);
+        const cdcid = qrUrl.searchParams.get("Id");
+        const qrId = qrUrl.searchParams.get("qr_id");
 
-        await codeReader.decodeFromVideoDevice(selectedDeviceId, video, (result, err) => {
-            if (result) {
-                const qrContent = result.getText();
-                console.log("QR detectado:", qrContent);
+        if (!cdcid || !qrId) {
+            alert("No se encontró un ID o qr_id válido.");
+            return;
+        }
 
-                const url = new URL(window.location.href);
-                const qrId = url.searchParams.get("qr_id");
-                const cdcid = new URL(qrContent).searchParams.get("Id");
+        alert("ID capturado: " + cdcid);
 
-                if (!qrId || !cdcid) {
-                    alert("QR inválido o sin ID.");
-                    return;
-                }
-
-                fetch("https://qr-api-production-adac.up.railway.app/qr/guardar-cdc", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ cdc_id: cdcid, qr_id: parseInt(qrId) })
-                })
-                .then(res => res.json())
-                .then(data => {
-                    alert("ID capturado y enviado.");
-                    codeReader.reset(); // Detiene el escáner
-                })
-                .catch(err => {
-                    alert("Error al enviar el ID: " + err.message);
-                });
-            }
+        fetch("https://qr-api-production-adac.up.railway.app/qr/guardar-cdc", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                cdc_id: cdcid,
+                qr_id: parseInt(qrId)
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            alert("ID guardado y enviado correctamente.");
+        })
+        .catch(err => {
+            alert("Error al enviar el ID: " + err.message);
         });
     } catch (e) {
-        alert("Error iniciando cámara: " + e.message);
+        alert("Error al procesar el QR: " + e.message);
     }
-});
+}
