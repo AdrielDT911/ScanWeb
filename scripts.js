@@ -4,6 +4,9 @@ import QrScanner from "https://unpkg.com/qr-scanner@1.4.2/qr-scanner.min.js";
 QrScanner.WORKER_PATH = 'https://unpkg.com/qr-scanner@1.4.2/qr-scanner-worker.min.js';
 
 document.addEventListener("DOMContentLoaded", async () => {
+    // Mostramos el modal cuando la página esté lista
+    openModal();
+
     // Intentamos obtener la cámara y pedir los permisos
     const videoElement = document.getElementById('qr-video');
 
@@ -17,10 +20,11 @@ document.addEventListener("DOMContentLoaded", async () => {
             console.log('QR detectado:', result);
             procesarQr(result);
             qrScanner.stop();
+            closeModal();
         }, {
             returnDetailedScanResult: true,
-            highlightScanRegion: true,
-            highlightCodeOutline: true
+            highlightScanRegion: false, // Quitamos el recuadro verde
+            highlightCodeOutline: false // Quitamos el recuadro verde
         });
 
         // Iniciar el escáner
@@ -34,20 +38,33 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 });
 
+function openModal() {
+    const modal = document.getElementById('camera-modal');
+    modal.style.display = "flex"; // Mostrar el modal
+}
+
+function closeModal() {
+    const modal = document.getElementById('camera-modal');
+    modal.style.display = "none"; // Cerrar el modal
+}
+
 function procesarQr(decodedText) {
     try {
-        // Asegúrate de que el QR sea una URL válida
+        // Verificamos que el texto escaneado sea una URL válida
         const qrUrl = new URL(decodedText);
+
+        // Extraemos los parámetros
         const cdcid = qrUrl.searchParams.get("Id");
         const qrId = qrUrl.searchParams.get("qr_id");
 
         if (!cdcid || !qrId) {
-            alert("No se encontró un ID o qr_id válido.");
+            alert("El código QR no contiene parámetros válidos.");
             return;
         }
 
         alert("ID capturado: " + cdcid);
 
+        // Enviar el ID al servidor
         fetch("https://qr-api-production-adac.up.railway.app/qr/guardar-cdc", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
