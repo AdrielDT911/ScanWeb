@@ -1,17 +1,34 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Escaneo de facturas utilizando tecnología QR para capturar IDs de documentos.">
+    <meta name="author" content="Tu Nombre o Empresa">
+    <meta name="robots" content="index, follow">
     <title>Escaneo de Factura</title>
     <link rel="stylesheet" href="styles.css">
 </head>
+
 <body>
-    <div class="modal show" id="cameraModal">
-        <video id="qr-video" autoplay muted playsinline></video>
+
+    <div class="container">
+        <h1>Escaneo de Factura</h1>
+        <!-- Solo mostramos qr_id -->
+        <p id="app-info">Cargando información...</p>
+
+        <!-- Modal para la cámara -->
+        <div id="cameraModal" class="modal" role="dialog" aria-labelledby="cameraModalLabel" aria-hidden="true">
+            <div class="modal-content">
+                <p id="cameraModalLabel">Acerca la cámara al código QR</p>
+                <div id="qr-reader" style="width: 100%; height: 50%;"></div>
+            </div>
+        </div>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qr-scanner/1.0.0/qr-scanner.min.js"></script>
     <script src="scripts.js"></script>
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 </body>
+
 </html>
