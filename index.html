@@ -4,46 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Escaneo de Factura</title>
-    <style>
-        body, html {
-            margin: 0;
-            padding: 0;
-            height: 100%;
-            overflow: hidden;
-        }
-        #video-container {
-            position: relative;
-            width: 100%;
-            height: 100%;
-        }
-        #qr-video {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-        #overlay {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 250px;
-            height: 250px;
-            margin-left: -125px;
-            margin-top: -125px;
-            border: 4px solid green;
-            box-sizing: border-box;
-            z-index: 2;
-        }
-    </style>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div id="video-container">
-        <video id="qr-video" autoplay muted playsinline></video>
-        <div id="overlay"></div>
+    <!-- Modal para mostrar la cámara -->
+    <div id="camera-modal" class="modal">
+        <div class="modal-content">
+            <video id="qr-video" autoplay muted playsinline></video>
+            <div id="overlay"></div>
+            <button id="close-modal" onclick="closeModal()">Cerrar</button>
+        </div>
     </div>
+
     <script type="module" src="scripts.js"></script>
-    <script type="module">
-        import QrScanner from "https://unpkg.com/qr-scanner@1.4.2/qr-scanner.min.js";
-        QrScanner.WORKER_PATH = 'https://unpkg.com/qr-scanner@1.4.2/qr-scanner-worker.min.js';
-    </script>
 </body>
 </html>
