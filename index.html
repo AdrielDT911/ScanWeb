@@ -14,13 +14,15 @@
  <body>
  
     <div class="container">
-        <h1>Escaneo de QR de Factura</h1>
+        <h1>Escaneo de Factura</h1>
+        <!-- Solo mostramos qr_id -->
+        <p id="app-info">Cargando información...</p>
  
         <!-- Modal para la cámara -->
         <div id="cameraModal" class="modal" role="dialog" aria-labelledby="cameraModalLabel" aria-hidden="true">
             <div class="modal-content">
                 <p id="cameraModalLabel">Acerca la cámara al código QR</p>
-                <div id="qr-reader" style="width: 100%; height: 100%;"></div>
+                <div id="qr-reader" style="width: 100%; height: 50%;"></div>
             </div>
         </div>
     </div>
