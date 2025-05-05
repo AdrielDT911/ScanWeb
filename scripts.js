@@ -21,7 +21,7 @@ function iniciarEscaneoDirecto(qrId) {
     {
       fps: 10,
       qrbox: {
-        width: 370,
+        width: 400,
         height: 200,
         drawOutline: true
       },
@@ -41,7 +41,7 @@ function iniciarEscaneoDirecto(qrId) {
         return;
       }
 
-      console.log("Código CDC capturado: " + cdcid);
+      alert("Código CDC capturado: " + cdcid);
 
 
       fetch("https://qr-api-production-adac.up.railway.app/qr/guardar-cdc", {
