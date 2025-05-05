@@ -7,7 +7,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   iniciarEscaneoDirecto(qrId);
-  iniciarEscaneoTexto(qrId); // 👈 OCR agregado
+  iniciarEscaneoTexto(qrId);
 });
 
 function iniciarEscaneoDirecto(qrId) {
@@ -21,15 +21,15 @@ function iniciarEscaneoDirecto(qrId) {
     {
       fps: 10,
       qrbox: {
-        width: 370,
+        width: 200,
         height: 200,
         drawOutline: true
       },
-      aspectRatio: 1.0,
+      aspectRatio: getAspectRatio(),
       disableFlip: true
     },
     (decodedText, decodedResult) => {
-      if (scanned) return; // evitar múltiples lecturas
+      if (scanned) return;
       scanned = true;
       qrReader.classList.add("scan-success");
 
@@ -69,6 +69,27 @@ function iniciarEscaneoDirecto(qrId) {
   ).catch(err => {
     console.error("Error al iniciar cámara: ", err);
   });
+
+  // Adaptar tamaño al girar pantalla
+  window.addEventListener("orientationchange", () => {
+    html5QrCode.stop().then(() => {
+      html5QrCode.start(
+        { facingMode: "environment" },
+        {
+          fps: 10,
+          qrbox: {
+            width: 370,
+            height: 200,
+            drawOutline: true
+          },
+          aspectRatio: getAspectRatio(),
+          disableFlip: true
+        },
+        () => {},
+        () => {}
+      );
+    });
+  });
 }
 
 // 🆕 OCR para detectar texto como "CDC: ..."
@@ -77,6 +98,8 @@ function iniciarEscaneoTexto(qrId) {
   video.setAttribute('playsinline', '');
   video.style.display = 'none';
   document.body.appendChild(video);
+
+  let cdcEnviado = false;
 
   navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
     .then(stream => {
@@ -87,7 +110,7 @@ function iniciarEscaneoTexto(qrId) {
       const context = canvas.getContext('2d');
 
       const interval = setInterval(() => {
-        if (video.readyState === video.HAVE_ENOUGH_DATA) {
+        if (video.readyState === video.HAVE_ENOUGH_DATA && !cdcEnviado) {
           canvas.width = video.videoWidth;
           canvas.height = video.videoHeight;
           context.drawImage(video, 0, 0, canvas.width, canvas.height);
@@ -95,12 +118,15 @@ function iniciarEscaneoTexto(qrId) {
 
           Tesseract.recognize(
             imageData,
-            'spa', // idioma español
+            'spa',
             { logger: m => console.log(m) }
           ).then(({ data: { text } }) => {
             const match = text.match(/CDC:\s*([\d\s]+)/i);
             if (match) {
               const cdcid = match[1].replace(/\s+/g, '');
+              if (cdcEnviado) return;
+              cdcEnviado = true;
+
               alert("Código CDC detectado: " + cdcid);
 
               fetch("https://qr-api-production-adac.up.railway.app/qr/guardar-cdc", {
@@ -125,9 +151,16 @@ function iniciarEscaneoTexto(qrId) {
             }
           }).catch(err => console.error("OCR error:", err));
         }
-      }, 2000); // analiza cada 2 segundos
+      }, 2000);
     })
     .catch(err => {
       alert("Error al acceder a la cámara para OCR: " + err.message);
     });
+}
+
+// 🔁 Devuelve aspecto según orientación del dispositivo
+function getAspectRatio() {
+  const width = window.innerWidth;
+  const height = window.innerHeight;
+  return width > height ? width / height : height / width;
 }
