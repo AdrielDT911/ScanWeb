@@ -13,15 +13,15 @@ function iniciarEscaneoDirecto(qrId) {
   const qrReader = document.getElementById("qr-reader");
   const html5QrCode = new Html5Qrcode("qr-reader");
 
-  let scannedQR = false;
-  let scannedTexto = false;
+  let scanned = false;
+  let textoEnviado = false;
 
   html5QrCode.start(
     { facingMode: "environment" },
     {
       fps: 10,
       qrbox: {
-        width: 320,
+        width: 200,
         height: 200,
         drawOutline: true
       },
@@ -29,19 +29,19 @@ function iniciarEscaneoDirecto(qrId) {
       disableFlip: true
     },
     (decodedText, decodedResult) => {
-      if (scannedQR) return;
-      scannedQR = true;
+      if (scanned) return;
+      scanned = true;
       qrReader.classList.add("scan-success");
 
       const qrUrl = new URL(decodedText);
       const cdcid = qrUrl.searchParams.get("Id");
 
       if (!cdcid || !qrId) {
-        alert("No se encontró un ID o qr_id válido en el QR.");
+        alert("No se encontró un ID o qr_id válido.");
         return;
       }
 
-      alert("ID capturado (QR): " + cdcid);
+      alert("ID capturado: " + cdcid);
 
       fetch("https://qr-api-production-adac.up.railway.app/qr/guardar-cdc", {
         method: "POST",
@@ -53,71 +53,77 @@ function iniciarEscaneoDirecto(qrId) {
       })
         .then(res => res.json())
         .then(data => {
-          alert("ID del QR enviado correctamente.");
+          alert("ID guardado y enviado correctamente.");
         })
         .catch(err => {
-          alert("Error al enviar ID del QR: " + err.message);
+          alert("Error al enviar el ID: " + err.message);
         });
 
       html5QrCode.stop().then(() => {
-        console.log("Escáner detenido tras escanear QR.");
+        console.log("Escáner detenido");
       });
     },
     (errorMessage) => {
-      console.log("Error escaneo QR: ", errorMessage);
+      console.log("Error escaneo: ", errorMessage);
     }
   ).catch(err => {
     console.error("Error al iniciar cámara: ", err);
   });
 
-  // OCR: detectar texto en frame de video
-  function detectarTextoOCR() {
-    const videoElement = document.querySelector('video');
-    if (!videoElement || scannedTexto) return;
+  // OCR cada 3 segundos
+  setInterval(() => {
+    if (textoEnviado) return;
+    detectarTextoOCR(qrId, () => { textoEnviado = true; });
+  }, 3000);
+}
 
-    const canvas = document.createElement("canvas");
-    const context = canvas.getContext("2d");
-    canvas.width = videoElement.videoWidth;
-    canvas.height = videoElement.videoHeight;
-    context.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+function detectarTextoOCR(qrId, onSuccess) {
+  const video = document.querySelector("video");
+  if (!video) return;
 
-    Tesseract.recognize(canvas, 'spa', {
-      logger: m => console.log(m)
-    }).then(({ data: { text } }) => {
-      console.log("Texto detectado (OCR): ", text);
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-      // Buscar código CDC (22 bloques de 4 dígitos)
-      const regex = /(\d{4}[\s-]?){10,}/g;
-      const coincidencias = text.match(regex);
+  Tesseract.recognize(
+    canvas,
+    "spa",
+    {
+      logger: (m) => console.log(m)
+    }
+  ).then(({ data: { text } }) => {
+    console.log("Texto OCR:", text);
 
-      if (coincidencias && coincidencias.length > 0) {
-        const cdcTexto = coincidencias[0].replace(/[\s-]+/g, ''); // quitar espacios/guiones
-        if (cdcTexto.length >= 40) {
-          scannedTexto = true;
-          alert("Código impreso detectado: " + cdcTexto);
+    // Limpiar texto y buscar número CDC completo (puede tener saltos o espacios)
+    const limpio = text.replace(/\s+/g, " ").trim();
 
-          fetch("https://qr-api-production-adac.up.railway.app/qr/guardar-cdc", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              cdc_id: cdcTexto,
-              qr_id: parseInt(qrId)
-            })
-          })
-            .then(res => res.json())
-            .then(data => {
-              alert("Código impreso enviado correctamente.");
-            })
-            .catch(err => {
-              alert("Error al enviar código impreso: " + err.message);
-            });
-        }
-      }
-    }).catch(err => {
-      console.error("Error OCR: ", err);
-    });
-  }
+    const regex = /(CDC[:\-]?\s*)?(\d{4} \d{4} \d{4} \d{4} \d{4} \d{4} \d{4} \d{4} \d{4} \d{4} \d{4} \d{4})/;
+    const match = limpio.match(regex);
 
-  // Ejecutar OCR cada 3 segundos
-  setInterval(detectarTextoOCR, 1000);
+    if (match && match[2]) {
+      const cdcTexto = match[2].replace(/\s/g, "");
+      alert("CDC detectado: " + cdcTexto);
+
+      fetch("https://qr-api-production-adac.up.railway.app/qr/guardar-cdc", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          cdc_id: cdcTexto,
+          qr_id: parseInt(qrId)
+        })
+      })
+        .then(res => res.json())
+        .then(data => {
+          alert("CDC enviado correctamente.");
+          if (typeof onSuccess === "function") onSuccess();
+        })
+        .catch(err => {
+          alert("Error al enviar el CDC: " + err.message);
+        });
+    }
+  }).catch(err => {
+    console.error("Error en OCR: ", err);
+  });
 }
