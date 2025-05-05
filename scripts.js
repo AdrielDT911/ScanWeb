@@ -11,28 +11,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
 function iniciarEscaneoDirecto(qrId) {
   const qrReader = document.getElementById("qr-reader");
-  const html5QrCode = new Html5Qrcode("qr-reader");
 
-  let scanned = false;
+  // Inicia QRScanner
+  QRScanner.prepare(function (err, status) {
+    if (err) {
+      alert("Error al preparar el escáner: " + err);
+      return;
+    }
 
-  html5QrCode.start(
-    { facingMode: "environment" },
-    {
-      fps: 10,
-      qrbox: {
-        width: 200,
-        height: 200,
-        drawOutline: true
-      },
-      aspectRatio: 1.0,
-      disableFlip: true
-    },
-    (decodedText, decodedResult) => {
-      if (scanned) return; // evitar múltiples lecturas
-      scanned = true;
-      qrReader.classList.add("scan-success");
-
-      const qrUrl = new URL(decodedText);
+    // Comienza a escanear
+    QRScanner.scan(function (result) {
+      const qrUrl = new URL(result);
       const cdcid = qrUrl.searchParams.get("Id");
 
       if (!cdcid || !qrId) {
@@ -58,14 +47,11 @@ function iniciarEscaneoDirecto(qrId) {
           alert("Error al enviar el ID: " + err.message);
         });
 
-      html5QrCode.stop().then(() => {
-        console.log("Escáner detenido");
-      });
-    },
-    (errorMessage) => {
-      console.log("Error escaneo: ", errorMessage);
-    }
-  ).catch(err => {
-    console.error("Error al iniciar cámara: ", err);
+      QRScanner.destroy();
+    }, function (error) {
+      console.log("Error escaneo: ", error);
+    });
+
+    QRScanner.show();
   });
 }
