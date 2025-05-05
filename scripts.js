@@ -20,7 +20,7 @@ function iniciarEscaneoDirecto(qrId) {
     {
       fps: 10,
       qrbox: {
-        width: 200,
+        width: 500,
         height: 200,
         drawOutline: true
       },
@@ -68,4 +68,36 @@ function iniciarEscaneoDirecto(qrId) {
   ).catch(err => {
     console.error("Error al iniciar cámara: ", err);
   });
+
+  // Captura y procesado de imagen para OCR
+  async function detectTextoOCR(image) {
+    const result = await Tesseract.recognize(
+      image, 
+      'spa', // idioma español (puedes cambiarlo a otro idioma si es necesario)
+      {
+        logger: (m) => console.log(m),
+      }
+    );
+    
+    const textoDetectado = result.text;
+    console.log("Texto detectado:", textoDetectado);
+    buscarCodigoEnTexto(textoDetectado);
+  }
+
+  // Función para buscar una serie de números en el texto
+  function buscarCodigoEnTexto(texto) {
+    const regex = /\d{4} \d{4} \d{4} \d{4} \d{4} \d{4} \d{4}/g; // Buscar secuencias como "0180 0148 6810 4300 ..."
+    const coincidencias = texto.match(regex);
+
+    if (coincidencias) {
+      console.log("Código detectado:", coincidencias[0]);
+      alert("Código detectado: " + coincidencias[0]);
+    } else {
+      console.log("No se detectó código en el texto.");
+    }
+  }
+
+  // Aquí puedes capturar las imágenes de la cámara (esto sería un ejemplo)
+  // Aquí deberías implementar una función para capturar la imagen de la cámara en tiempo real
+  // y enviarla a la función de OCR.
 }
