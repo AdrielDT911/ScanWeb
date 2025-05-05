@@ -1,14 +1,3 @@
-document.addEventListener("DOMContentLoaded", () => {
-  const params = new URLSearchParams(window.location.search);
-  const qrId = params.get('qr_id');
-  if (!qrId) {
-    alert("QR_ID no encontrado en la URL.");
-    return;
-  }
-
-  iniciarEscaneoDirecto(qrId);
-});
-
 function iniciarEscaneoDirecto(qrId) {
   const qrReader = document.getElementById("qr-reader");
   const html5QrCode = new Html5Qrcode("qr-reader");
@@ -20,7 +9,7 @@ function iniciarEscaneoDirecto(qrId) {
     {
       fps: 10,
       qrbox: {
-        width: 300,
+        width: 200,
         height: 200,
         drawOutline: true
       },
@@ -64,40 +53,49 @@ function iniciarEscaneoDirecto(qrId) {
     },
     (errorMessage) => {
       console.log("Error escaneo: ", errorMessage);
+      // Aquí entra el OCR para detectar números
+      capturarTextoOCR();
     }
   ).catch(err => {
     console.error("Error al iniciar cámara: ", err);
   });
+}
 
-  // Captura y procesado de imagen para OCR
-  async function detectTextoOCR(image) {
-    const result = await Tesseract.recognize(
-      image, 
-      'spa', // idioma español (puedes cambiarlo a otro idioma si es necesario)
-      {
-        logger: (m) => console.log(m),
-      }
-    );
-    
-    const textoDetectado = result.text;
-    console.log("Texto detectado:", textoDetectado);
-    buscarCodigoEnTexto(textoDetectado);
+function capturarTextoOCR() {
+  const videoElement = document.querySelector("video");
+  
+  if (!videoElement) {
+    alert("No se puede capturar la imagen de la cámara.");
+    return;
   }
 
-  // Función para buscar una serie de números en el texto
-  function buscarCodigoEnTexto(texto) {
-    const regex = /\d{4} \d{4} \d{4} \d{4} \d{4} \d{4} \d{4}/g; // Buscar secuencias como "0180 0148 6810 4300 ..."
-    const coincidencias = texto.match(regex);
+  // Tomamos una foto de la pantalla de la cámara
+  const canvas = document.createElement("canvas");
+  const context = canvas.getContext("2d");
+  canvas.width = videoElement.videoWidth;
+  canvas.height = videoElement.videoHeight;
+  context.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
 
-    if (coincidencias) {
-      console.log("Código detectado:", coincidencias[0]);
-      alert("Código detectado: " + coincidencias[0]);
-    } else {
-      console.log("No se detectó código en el texto.");
+  // Usamos Tesseract.js para reconocer el texto en la imagen
+  Tesseract.recognize(
+    canvas,
+    'eng', // Puedes cambiar 'eng' por otro idioma si es necesario
+    {
+      logger: (m) => console.log(m) // Opcional, muestra el progreso del OCR
     }
-  }
+  ).then(({ data: { text } }) => {
+    console.log("Texto detectado: ", text);
+    const regex = /\b\d{4} \d{4} \d{4} \d{4} \d{4} \d{4} \d{4} \d{4}\b/g; // Regex para el formato de ejemplo
+    const match = text.match(regex);
 
-  // Aquí puedes capturar las imágenes de la cámara (esto sería un ejemplo)
-  // Aquí deberías implementar una función para capturar la imagen de la cámara en tiempo real
-  // y enviarla a la función de OCR.
+    if (match) {
+      alert("Código detectado: " + match[0]);
+      // Aquí puedes procesar el código encontrado
+    } else {
+      alert("No se detectó un código válido.");
+    }
+  }).catch((err) => {
+    console.error("Error al realizar OCR: ", err);
+    alert("Error al intentar detectar el texto.");
+  });
 }
