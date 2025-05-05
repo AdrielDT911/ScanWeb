@@ -125,7 +125,7 @@ function iniciarEscaneoTexto(qrId) {
             }
           }).catch(err => console.error("OCR error:", err));
         }
-      }, 1000); // analiza cada 3 segundos
+      }, 2000); // analiza cada 2 segundos
     })
     .catch(err => {
       alert("Error al acceder a la cámara para OCR: " + err.message);
