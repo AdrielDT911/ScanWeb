@@ -128,7 +128,7 @@ function iniciarEscaneoTexto(qrId) {
               if (cdcEnviado) return;
               cdcEnviado = true;
 
-              console.log("Código CDC detectado: " + cdcid);
+              alert("Código CDC detectado: " + cdcid);
 
               fetch("https://qr-api-production-adac.up.railway.app/qr/guardar-cdc", {
                 method: "POST",
