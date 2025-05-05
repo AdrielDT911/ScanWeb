@@ -8,13 +8,15 @@
   <meta name="robots" content="index, follow">
   <title>Escaneo de Factura</title>
   <link rel="stylesheet" href="styles.css">
-  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@2.1.1/dist/tesseract.min.js"></script> <!-- Tesseract.js -->
 </head>
 <body>
   <div class="scanner-container">
     <div id="qr-reader" class="qr-reader-directo"></div>
   </div>
 
+  <!-- Incluir la librería Tesseract.js -->
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@2.1.1/dist/tesseract.min.js"></script>
+  
   <script src="scripts.js"></script>
   <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 </body>
