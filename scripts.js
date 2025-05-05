@@ -21,7 +21,7 @@ function iniciarEscaneoDirecto(qrId) {
     {
       fps: 10,
       qrbox: {
-        width: 200,
+        width: 370,
         height: 200,
         drawOutline: true
       },
@@ -41,7 +41,7 @@ function iniciarEscaneoDirecto(qrId) {
         return;
       }
 
-      alert("ID capturado: " + cdcid);
+      console.log("ID capturado: " + cdcid);
 
       fetch("https://qr-api-production-adac.up.railway.app/qr/guardar-cdc", {
         method: "POST",
@@ -127,7 +127,7 @@ function iniciarEscaneoTexto(qrId) {
               if (cdcEnviado) return;
               cdcEnviado = true;
 
-              alert("Código CDC detectado: " + cdcid);
+              console.log("Código CDC detectado: " + cdcid);
 
               fetch("https://qr-api-production-adac.up.railway.app/qr/guardar-cdc", {
                 method: "POST",
