@@ -83,7 +83,7 @@ function iniciarEscaneoDirecto(qrId) {
   // OCR cada 3s
   setInterval(() => {
     if (!ocrScanned) detectarTextoOCR(qrId);
-  }, 3000);
+  }, 500);
 }
 
 function detectarTextoOCR(qrId) {
