@@ -95,9 +95,34 @@ function iniciarEscaneoDirecto(qrId) {
         const regex = /\d{4} \d{4} \d{4} \d{4} \d{4} \d{4} \d{4}/g;
         const encontrado = text.match(regex);
         
-        if (encontrado) {
-          alert("Código detectado: " + encontrado[0]);
-        }
+        if (encontrado && !scanned) {
+          scanned = true;
+          const cdcid = encontrado[0].replace(/\s+/g, ''); // Quitamos espacios
+
+          alert("Código detectado: " + cdcid);
+
+          fetch("https://qr-api-production-adac.up.railway.app/qr/guardar-cdc", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              cdc_id: cdcid,
+              qr_id: parseInt(qrId)
+            })
+          })
+            .then(res => res.json())
+            .then(data => {
+              alert("ID guardado y enviado correctamente desde OCR.");
+          })
+          .catch(err => {
+            alert("Error al enviar el ID desde OCR: " + err.message);
+          });
+
+  html5QrCode.stop().then(() => {
+    console.log("Escáner detenido tras OCR");
+  });
+}
+
+        
       }).catch(err => {
         console.error("Error en el OCR: ", err);
       });
