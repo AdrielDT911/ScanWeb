@@ -20,7 +20,7 @@ function iniciarEscaneoDirecto(qrId) {
     {
       fps: 10,
       qrbox: {
-        width: 250,
+        width: 280,
         height: 200,
         drawOutline: true
       },
