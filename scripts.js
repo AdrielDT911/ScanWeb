@@ -1,101 +1,71 @@
 document.addEventListener("DOMContentLoaded", () => {
-    // Obtener el parámetro de la URL
-    const params = new URLSearchParams(window.location.search);
-    const qrId = params.get('qr_id');
-    if (!qrId) {
-        alert("QR_ID no encontrado en la URL.");
-        return;
-    }
+  const params = new URLSearchParams(window.location.search);
+  const qrId = params.get('qr_id');
+  if (!qrId) {
+    alert("QR_ID no encontrado en la URL.");
+    return;
+  }
 
-    // Mostrar los datos en el HTML
-    document.querySelector('#app-info').textContent = `QR_ID: ${qrId}`;
-
-    // Iniciar la cámara automáticamente
-    abrirCamara();
+  iniciarEscaneoDirecto(qrId);
 });
 
-let html5QrCode = null; // Declaramos esta variable globalmente
+function iniciarEscaneoDirecto(qrId) {
+  const qrReader = document.getElementById("qr-reader");
+  const html5QrCode = new Html5Qrcode("qr-reader");
 
-// Función para abrir el modal y mostrar la cámara
-function abrirCamara() {
-    const modal = document.getElementById("cameraModal");
-    const qrReader = document.getElementById("qr-reader");
-    mostrarModal(modal);
+  let scanned = false;
 
-    html5QrCode = new Html5Qrcode("qr-reader"); // Inicializamos aquí
+  html5QrCode.start(
+    { facingMode: "environment" },
+    {
+      fps: 10,
+      qrbox: {
+        width: 200,
+        height: 200,
+        drawOutline: true
+      },
+      aspectRatio: 1.0,
+      disableFlip: true
+    },
+    (decodedText, decodedResult) => {
+      if (scanned) return; // evitar múltiples lecturas
+      scanned = true;
+      qrReader.classList.add("scan-success");
 
-    // Inicia el escáner de QR
-    html5QrCode.start(
-        { facingMode: "environment" },
-        { fps: 10, qrbox: { width: 200, height: 200 }, aspectRatio: 1.0, disableFlip: true},
-        (decodedText, decodedResult) => {
-            console.log("QR detectado:", decodedText);
-            procesarQr(decodedText, html5QrCode);
-        },
-        (errorMessage) => {
-            console.log("Error en el escaneo: ", errorMessage);
-        }
-    ).catch((err) => {
-        console.error("Error iniciando escáner:", err);
-    });
-}
+      const qrUrl = new URL(decodedText);
+      const cdcid = qrUrl.searchParams.get("Id");
 
-// Función para mostrar el modal
-function mostrarModal(modal) {
-    modal.classList.add("show");
-}
+      if (!cdcid || !qrId) {
+        alert("No se encontró un ID o qr_id válido.");
+        return;
+      }
 
-// Función para ocultar el modal y detener el escáner de QR
-function cerrarCamara() {
-    const modal = document.getElementById("cameraModal");
-    modal.classList.remove("show");
+      alert("ID capturado: " + cdcid);
 
-    // Detenemos el escáner y la cámara
-    if (html5QrCode) {
-        html5QrCode.stop().then(() => {
-            console.log("Escáner detenido");
-        }).catch((err) => {
-            console.error("Error al detener el escáner:", err);
-        });
-    }
-}
-
-// Función para procesar el QR
-function procesarQr(decodedText, html5QrCode) {
-    try {
-        const qrUrl = new URL(decodedText);
-        const cdcid = qrUrl.searchParams.get("Id");
-
-        const currentParams = new URLSearchParams(window.location.search);
-        const qrId = currentParams.get("qr_id");
-
-        if (!cdcid || !qrId) {
-            alert("No se encontró un ID o qr_id válido.");
-            return;
-        }
-
-        alert("ID capturado: " + cdcid);
-
-        fetch("https://qr-api-production-adac.up.railway.app/qr/guardar-cdc", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                cdc_id: cdcid,
-                qr_id: parseInt(qrId) // Enviar qr_id junto con cdc_id
-            })
+      fetch("https://qr-api-production-adac.up.railway.app/qr/guardar-cdc", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          cdc_id: cdcid,
+          qr_id: parseInt(qrId)
         })
+      })
         .then(res => res.json())
         .then(data => {
-            alert("ID guardado y enviado correctamente.");
+          alert("ID guardado y enviado correctamente.");
         })
         .catch(err => {
-            alert("Error al enviar el ID: " + err.message);
+          alert("Error al enviar el ID: " + err.message);
         });
 
-        html5QrCode.stop().then(() => {
-            cerrarCamara();
-        });
-    } catch (e) {
-        alert("Error al procesar el QR: " + e.message);
+      html5QrCode.stop().then(() => {
+        console.log("Escáner detenido");
+      });
+    },
+    (errorMessage) => {
+      console.log("Error escaneo: ", errorMessage);
     }
+  ).catch(err => {
+    console.error("Error al iniciar cámara: ", err);
+  });
 }
