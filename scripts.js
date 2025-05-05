@@ -13,14 +13,15 @@ function iniciarEscaneoDirecto(qrId) {
   const qrReader = document.getElementById("qr-reader");
   const html5QrCode = new Html5Qrcode("qr-reader");
 
-  let scanned = false;
+  let scannedQR = false;
+  let scannedTexto = false;
 
   html5QrCode.start(
     { facingMode: "environment" },
     {
       fps: 10,
       qrbox: {
-        width: 320,
+        width: 200,
         height: 200,
         drawOutline: true
       },
@@ -28,19 +29,19 @@ function iniciarEscaneoDirecto(qrId) {
       disableFlip: true
     },
     (decodedText, decodedResult) => {
-      if (scanned) return; // evitar múltiples lecturas
-      scanned = true;
+      if (scannedQR) return;
+      scannedQR = true;
       qrReader.classList.add("scan-success");
 
       const qrUrl = new URL(decodedText);
       const cdcid = qrUrl.searchParams.get("Id");
 
       if (!cdcid || !qrId) {
-        alert("No se encontró un ID o qr_id válido.");
+        alert("No se encontró un ID o qr_id válido en el QR.");
         return;
       }
 
-      alert("ID capturado: " + cdcid);
+      alert("ID capturado (QR): " + cdcid);
 
       fetch("https://qr-api-production-adac.up.railway.app/qr/guardar-cdc", {
         method: "POST",
@@ -52,83 +53,71 @@ function iniciarEscaneoDirecto(qrId) {
       })
         .then(res => res.json())
         .then(data => {
-          alert("ID guardado y enviado correctamente.");
+          alert("ID del QR enviado correctamente.");
         })
         .catch(err => {
-          alert("Error al enviar el ID: " + err.message);
+          alert("Error al enviar ID del QR: " + err.message);
         });
 
       html5QrCode.stop().then(() => {
-        console.log("Escáner detenido");
+        console.log("Escáner detenido tras escanear QR.");
       });
     },
     (errorMessage) => {
-      console.log("Error escaneo: ", errorMessage);
+      console.log("Error escaneo QR: ", errorMessage);
     }
   ).catch(err => {
     console.error("Error al iniciar cámara: ", err);
   });
 
-  // Añadir detección de texto (OCR)
+  // OCR: detectar texto en frame de video
   function detectarTextoOCR() {
-    const videoElement = document.querySelector('video'); // Elemento de video de la cámara
-    if (videoElement) {
-      // Capturamos un frame de la cámara
-      const canvas = document.createElement("canvas");
-      const context = canvas.getContext("2d");
-      canvas.width = videoElement.videoWidth;
-      canvas.height = videoElement.videoHeight;
-      context.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+    const videoElement = document.querySelector('video');
+    if (!videoElement || scannedTexto) return;
 
-      // Usamos Tesseract.js para detectar texto
-      Tesseract.recognize(
-        canvas, 
-        'spa', // Idioma español
-        {
-          logger: (m) => console.log(m)
-        }
-      ).then(({ data: { text } }) => {
-        // Aquí puedes procesar el texto detectado
-        console.log("Texto detectado: ", text);
+    const canvas = document.createElement("canvas");
+    const context = canvas.getContext("2d");
+    canvas.width = videoElement.videoWidth;
+    canvas.height = videoElement.videoHeight;
+    context.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
 
-        // Si encontramos una cadena numérica (el código CDC), puedes hacer algo con ella
-        const regex = /\d{4} \d{4} \d{4} \d{4} \d{4} \d{4} \d{4}/g;
-        const encontrado = text.match(regex);
-        
-        if (encontrado && !scanned) {
-          scanned = true;
-          const cdcid = encontrado[0].replace(/\s+/g, ''); // Quitamos espacios
+    Tesseract.recognize(canvas, 'spa', {
+      logger: m => console.log(m)
+    }).then(({ data: { text } }) => {
+      console.log("Texto detectado (OCR): ", text);
 
-          alert("Código detectado: " + cdcid);
+      // Buscar código CDC (22 bloques de 4 dígitos)
+      const regex = /(\d{4}[\s-]?){10,}/g;
+      const coincidencias = text.match(regex);
+
+      if (coincidencias && coincidencias.length > 0) {
+        const cdcTexto = coincidencias[0].replace(/[\s-]+/g, ''); // quitar espacios/guiones
+        if (cdcTexto.length >= 40) {
+          scannedTexto = true;
+          alert("Código impreso detectado: " + cdcTexto);
 
           fetch("https://qr-api-production-adac.up.railway.app/qr/guardar-cdc", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              cdc_id: cdcid,
+              cdc_id: cdcTexto,
               qr_id: parseInt(qrId)
             })
           })
             .then(res => res.json())
             .then(data => {
-              alert("ID guardado y enviado correctamente desde OCR.");
-          })
-          .catch(err => {
-            alert("Error al enviar el ID desde OCR: " + err.message);
-          });
-
-  html5QrCode.stop().then(() => {
-    console.log("Escáner detenido tras OCR");
-  });
-}
-
-        
-      }).catch(err => {
-        console.error("Error en el OCR: ", err);
-      });
-    }
+              alert("Código impreso enviado correctamente.");
+            })
+            .catch(err => {
+              alert("Error al enviar código impreso: " + err.message);
+            });
+        }
+      }
+    }).catch(err => {
+      console.error("Error OCR: ", err);
+    });
   }
 
-  // Llamar a la función de OCR cada 2 segundos (o el tiempo que desees)
-  setInterval(detectarTextoOCR, 2000);
+  // Ejecutar OCR cada 3 segundos
+  setInterval(detectarTextoOCR, 1000);
 }
