@@ -41,7 +41,8 @@ function iniciarEscaneoDirecto(qrId) {
         return;
       }
 
-      alert("ID capturado: " + cdcid);
+      console.log("Código CDC capturado: " + cdcid);
+
 
       fetch("https://qr-api-production-adac.up.railway.app/qr/guardar-cdc", {
         method: "POST",
@@ -53,10 +54,10 @@ function iniciarEscaneoDirecto(qrId) {
       })
         .then(res => res.json())
         .then(data => {
-          alert("ID guardado y enviado correctamente.");
+          console.log("CDC enviado correctamente.");
         })
         .catch(err => {
-          alert("Error al enviar el ID: " + err.message);
+          console.log("Error al enviar el ID: " + err.message);
         });
 
       html5QrCode.stop().then(() => {
@@ -127,7 +128,7 @@ function iniciarEscaneoTexto(qrId) {
               if (cdcEnviado) return;
               cdcEnviado = true;
 
-              alert("Código CDC detectado: " + cdcid);
+              console.log("Código CDC detectado: " + cdcid);
 
               fetch("https://qr-api-production-adac.up.railway.app/qr/guardar-cdc", {
                 method: "POST",
@@ -139,10 +140,10 @@ function iniciarEscaneoTexto(qrId) {
               })
               .then(res => res.json())
               .then(data => {
-                alert("CDC guardado correctamente.");
+                console.log("CDC guardado correctamente.");
               })
               .catch(err => {
-                alert("Error al enviar el CDC: " + err.message);
+                console.log("Error al enviar el CDC: " + err.message);
               });
 
               clearInterval(interval);
@@ -154,7 +155,7 @@ function iniciarEscaneoTexto(qrId) {
       }, 2000);
     })
     .catch(err => {
-      alert("Error al acceder a la cámara para OCR: " + err.message);
+      console.log("Error al acceder a la cámara para OCR: " + err.message);
     });
 }
 
