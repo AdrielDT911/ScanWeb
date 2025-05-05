@@ -10,43 +10,62 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 function iniciarEscaneoDirecto(qrId) {
-  const scanner = new Instascan.Scanner({ video: document.getElementById('qr-reader') });
+  const qrReader = document.getElementById("qr-reader");
+  const html5QrCode = new Html5Qrcode("qr-reader");
 
-  scanner.addListener('scan', function (content) {
-    const qrUrl = new URL(content);
-    const cdcid = qrUrl.searchParams.get("Id");
+  let scanned = false;
 
-    if (!cdcid || !qrId) {
-      alert("No se encontró un ID o qr_id válido.");
-      return;
-    }
+  html5QrCode.start(
+    { facingMode: "environment" },
+    {
+      fps: 10,
+      qrbox: {
+        width: 200,
+        height: 200,
+        drawOutline: true
+      },
+      aspectRatio: 1.0,
+      disableFlip: true
+    },
+    (decodedText, decodedResult) => {
+      if (scanned) return; // evitar múltiples lecturas
+      scanned = true;
+      qrReader.classList.add("scan-success");
 
-    alert("ID capturado: " + cdcid);
+      const qrUrl = new URL(decodedText);
+      const cdcid = qrUrl.searchParams.get("Id");
 
-    fetch("https://qr-api-production-adac.up.railway.app/qr/guardar-cdc", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        cdc_id: cdcid,
-        qr_id: parseInt(qrId)
+      if (!cdcid || !qrId) {
+        alert("No se encontró un ID o qr_id válido.");
+        return;
+      }
+
+      alert("ID capturado: " + cdcid);
+
+      fetch("https://qr-api-production-adac.up.railway.app/qr/guardar-cdc", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          cdc_id: cdcid,
+          qr_id: parseInt(qrId)
+        })
       })
-    })
-      .then(res => res.json())
-      .then(data => {
-        alert("ID guardado y enviado correctamente.");
-      })
-      .catch(err => {
-        alert("Error al enviar el ID: " + err.message);
+        .then(res => res.json())
+        .then(data => {
+          alert("ID guardado y enviado correctamente.");
+        })
+        .catch(err => {
+          alert("Error al enviar el ID: " + err.message);
+        });
+
+      html5QrCode.stop().then(() => {
+        console.log("Escáner detenido");
       });
-  });
-
-  Instascan.Camera.getCameras().then(function (cameras) {
-    if (cameras.length > 0) {
-      scanner.start(cameras[0]);
-    } else {
-      alert("No se encontró una cámara.");
+    },
+    (errorMessage) => {
+      console.log("Error escaneo: ", errorMessage);
     }
-  }).catch(function (e) {
-    alert("Error al iniciar cámara: " + e);
+  ).catch(err => {
+    console.error("Error al iniciar cámara: ", err);
   });
 }
