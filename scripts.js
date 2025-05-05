@@ -102,7 +102,7 @@ function detectarTextoOCR(qrId) {
     console.log("Texto detectado OCR: ", text);
 
     // REGEX para 10 bloques de 4 dígitos
-    const regex = /(\d{4}[\s-]?){9}\d{4}/g;
+    const regex = /(\d{4}[\s-]?){10}\d{4}/g;
     const encontrado = text.match(regex);
 
     if (encontrado && encontrado[0] && !ocrScanned) {
