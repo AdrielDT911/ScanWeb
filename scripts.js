@@ -21,7 +21,7 @@ function iniciarEscaneoDirecto(qrId) {
     {
       fps: 10,
       qrbox: {
-        width: 360,
+        width: 200,
         height: 200,
         drawOutline: true
       },
@@ -41,8 +41,7 @@ function iniciarEscaneoDirecto(qrId) {
         return;
       }
 
-      console.log("Código CDC capturado: " + cdcid);
-
+      alert("ID capturado: " + cdcid);
 
       fetch("https://qr-api-production-adac.up.railway.app/qr/guardar-cdc", {
         method: "POST",
@@ -54,10 +53,10 @@ function iniciarEscaneoDirecto(qrId) {
       })
         .then(res => res.json())
         .then(data => {
-          console.log("CDC enviado correctamente.");
+          alert("ID guardado y enviado correctamente.");
         })
         .catch(err => {
-          console.log("Error al enviar el ID: " + err.message);
+          alert("Error al enviar el ID: " + err.message);
         });
 
       html5QrCode.stop().then(() => {
@@ -79,7 +78,7 @@ function iniciarEscaneoDirecto(qrId) {
         {
           fps: 10,
           qrbox: {
-            width: 370,
+            width: 200,
             height: 200,
             drawOutline: true
           },
@@ -128,7 +127,7 @@ function iniciarEscaneoTexto(qrId) {
               if (cdcEnviado) return;
               cdcEnviado = true;
 
-              console.log("Código CDC detectado: " + cdcid);
+              alert("Código CDC detectado: " + cdcid);
 
               fetch("https://qr-api-production-adac.up.railway.app/qr/guardar-cdc", {
                 method: "POST",
@@ -140,10 +139,10 @@ function iniciarEscaneoTexto(qrId) {
               })
               .then(res => res.json())
               .then(data => {
-                console.log("CDC guardado correctamente.");
+                alert("CDC guardado correctamente.");
               })
               .catch(err => {
-                console.log("Error al enviar el CDC: " + err.message);
+                alert("Error al enviar el CDC: " + err.message);
               });
 
               clearInterval(interval);
@@ -152,10 +151,10 @@ function iniciarEscaneoTexto(qrId) {
             }
           }).catch(err => console.error("OCR error:", err));
         }
-      }, 2000);
+      }, 3000);
     })
     .catch(err => {
-      console.log("Error al acceder a la cámara para OCR: " + err.message);
+      alert("Error al acceder a la cámara para OCR: " + err.message);
     });
 }
 
