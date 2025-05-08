@@ -1,16 +1,18 @@
 document.addEventListener("DOMContentLoaded", () => {
   const params = new URLSearchParams(window.location.search);
   const qrId = params.get('qr_id');
-  if (!qrId) {
-    alert("QR_ID no encontrado en la URL.");
+  const appSession = params.get('app_session');
+
+  if (!qrId || !appSession) {
+    alert("Faltan parámetros en la URL (qr_id o app_session).");
     return;
   }
 
-  iniciarEscaneoDirecto(qrId);
-  iniciarEscaneoTexto(qrId);
+  iniciarEscaneoDirecto(qrId, appSession);
+  iniciarEscaneoTexto(qrId, appSession);
 });
 
-function iniciarEscaneoDirecto(qrId) {
+function iniciarEscaneoDirecto(qrId, appSession) {
   const qrReader = document.getElementById("qr-reader");
   const html5QrCode = new Html5Qrcode("qr-reader");
 
@@ -20,11 +22,7 @@ function iniciarEscaneoDirecto(qrId) {
     { facingMode: "environment" },
     {
       fps: 10,
-      qrbox: {
-        width: 370,
-        height: 200,
-        drawOutline: true
-      },
+      qrbox: { width: 370, height: 200, drawOutline: true },
       aspectRatio: getAspectRatio(),
       disableFlip: true
     },
@@ -36,8 +34,8 @@ function iniciarEscaneoDirecto(qrId) {
       const qrUrl = new URL(decodedText);
       const cdcid = qrUrl.searchParams.get("Id");
 
-      if (!cdcid || !qrId) {
-        alert("No se encontró un ID o qr_id válido.");
+      if (!cdcid || !qrId || !appSession) {
+        alert("Parámetros inválidos.");
         return;
       }
 
@@ -48,7 +46,8 @@ function iniciarEscaneoDirecto(qrId) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           cdc_id: cdcid,
-          qr_id: parseInt(qrId)
+          qr_id: qrId,
+          app_session: appSession
         })
       })
         .then(res => res.json())
@@ -77,11 +76,7 @@ function iniciarEscaneoDirecto(qrId) {
         { facingMode: "environment" },
         {
           fps: 10,
-          qrbox: {
-            width: 200,
-            height: 200,
-            drawOutline: true
-          },
+          qrbox: { width: 200, height: 200, drawOutline: true },
           aspectRatio: getAspectRatio(),
           disableFlip: true
         },
@@ -92,8 +87,7 @@ function iniciarEscaneoDirecto(qrId) {
   });
 }
 
-// 🆕 OCR para detectar texto como "CDC: ..."
-function iniciarEscaneoTexto(qrId) {
+function iniciarEscaneoTexto(qrId, appSession) {
   const video = document.createElement('video');
   video.setAttribute('playsinline', '');
   video.style.display = 'none';
@@ -134,7 +128,8 @@ function iniciarEscaneoTexto(qrId) {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                   cdc_id: cdcid,
-                  qr_id: parseInt(qrId)
+                  qr_id: qrId,
+                  app_session: appSession
                 })
               })
               .then(res => res.json())
@@ -158,7 +153,6 @@ function iniciarEscaneoTexto(qrId) {
     });
 }
 
-// 🔁 Devuelve aspecto según orientación del dispositivo
 function getAspectRatio() {
   const width = window.innerWidth;
   const height = window.innerHeight;
