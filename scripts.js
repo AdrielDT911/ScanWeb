@@ -1,100 +1,167 @@
 document.addEventListener("DOMContentLoaded", () => {
-    // Obtener los parámetros de la URL
-    const params = new URLSearchParams(window.location.search);
-    const qrId = params.get('qr_id');
-    const appSession = params.get('app_session');
+  const params = new URLSearchParams(window.location.search);
+  const qrId = params.get('qr_id');
+  const sessionId = params.get('session_id'); // 🆕
 
-    if (!qrId || !appSession) {
-        alert("Faltan parámetros en la URL (qr_id o app_session).");
-        return;
-    }
+  if (!qrId || !sessionId) {
+    alert("QR_ID o SESSION_ID no encontrado en la URL.");
+    return;
+  }
 
-    // Mostrar los datos en el HTML
-    document.querySelector('#app-info').textContent = `QR_ID: ${qrId} | Session: ${appSession}`;
-
-    // Iniciar la cámara automáticamente
-    abrirCamara();
+  iniciarEscaneoDirecto(qrId, sessionId);
+  iniciarEscaneoTexto(qrId, sessionId);
 });
 
-let html5QrCode = null; // Variable global para el escáner
+function iniciarEscaneoDirecto(qrId, sessionId) {
+  const qrReader = document.getElementById("qr-reader");
+  const html5QrCode = new Html5Qrcode("qr-reader");
 
-function abrirCamara() {
-    const modal = document.getElementById("cameraModal");
-    const qrReader = document.getElementById("qr-reader");
-    mostrarModal(modal);
+  let scanned = false;
 
-    html5QrCode = new Html5Qrcode("qr-reader");
+  html5QrCode.start(
+    { facingMode: "environment" },
+    {
+      fps: 10,
+      qrbox: {
+        width: 370,
+        height: 200,
+        drawOutline: true
+      },
+      aspectRatio: getAspectRatio(),
+      disableFlip: true
+    },
+    (decodedText, decodedResult) => {
+      if (scanned) return;
+      scanned = true;
+      qrReader.classList.add("scan-success");
 
-    html5QrCode.start(
+      const qrUrl = new URL(decodedText);
+      const cdcid = qrUrl.searchParams.get("Id");
+
+      if (!cdcid || !qrId || !sessionId) {
+        alert("No se encontró un ID, qr_id o session_id válido.");
+        return;
+      }
+
+      console.log("ID capturado: " + cdcid);
+
+      fetch("https://qr-api-production-adac.up.railway.app/qr/guardar-cdc", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          cdc_id: cdcid,
+          qr_id: parseInt(qrId),
+          session_id: sessionId
+        })
+      })
+        .then(res => res.json())
+        .then(data => {
+          alert("ID guardado y enviado correctamente.");
+        })
+        .catch(err => {
+          alert("Error al enviar el ID: " + err.message);
+        });
+
+      html5QrCode.stop().then(() => {
+        console.log("Escáner detenido");
+      });
+    },
+    (errorMessage) => {
+      console.log("Error escaneo: ", errorMessage);
+    }
+  ).catch(err => {
+    console.error("Error al iniciar cámara: ", err);
+  });
+
+  window.addEventListener("orientationchange", () => {
+    html5QrCode.stop().then(() => {
+      html5QrCode.start(
         { facingMode: "environment" },
-        { fps: 10, qrbox: { width: 200, height: 200 }, aspectRatio: 1.0, disableFlip: true },
-        (decodedText, decodedResult) => {
-            console.log("QR detectado:", decodedText);
-            procesarQr(decodedText);
+        {
+          fps: 10,
+          qrbox: {
+            width: 200,
+            height: 200,
+            drawOutline: true
+          },
+          aspectRatio: getAspectRatio(),
+          disableFlip: true
         },
-        (errorMessage) => {
-            console.log("Error en el escaneo:", errorMessage);
+        () => {},
+        () => {}
+      );
+    });
+  });
+}
+
+function iniciarEscaneoTexto(qrId, sessionId) {
+  const video = document.createElement('video');
+  video.setAttribute('playsinline', '');
+  video.style.display = 'none';
+  document.body.appendChild(video);
+
+  let cdcEnviado = false;
+
+  navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+    .then(stream => {
+      video.srcObject = stream;
+      video.play();
+
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('2d');
+
+      const interval = setInterval(() => {
+        if (video.readyState === video.HAVE_ENOUGH_DATA && !cdcEnviado) {
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+          context.drawImage(video, 0, 0, canvas.width, canvas.height);
+          const imageData = canvas.toDataURL('image/png');
+
+          Tesseract.recognize(
+            imageData,
+            'spa',
+            { logger: m => console.log(m) }
+          ).then(({ data: { text } }) => {
+            const match = text.match(/CDC:\s*([\d\s]+)/i);
+            if (match) {
+              const cdcid = match[1].replace(/\s+/g, '');
+              if (cdcEnviado) return;
+              cdcEnviado = true;
+
+              console.log("Código CDC detectado: " + cdcid);
+
+              fetch("https://qr-api-production-adac.up.railway.app/qr/guardar-cdc", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  cdc_id: cdcid,
+                  qr_id: parseInt(qrId),
+                  session_id: sessionId
+                })
+              })
+              .then(res => res.json())
+              .then(data => {
+                alert("CDC guardado correctamente.");
+              })
+              .catch(err => {
+                alert("Error al enviar el CDC: " + err.message);
+              });
+
+              clearInterval(interval);
+              stream.getTracks().forEach(track => track.stop());
+              video.remove();
+            }
+          }).catch(err => console.error("OCR error:", err));
         }
-    ).catch((err) => {
-        console.error("Error iniciando escáner:", err);
+      }, 3000);
+    })
+    .catch(err => {
+      alert("Error al acceder a la cámara para OCR: " + err.message);
     });
 }
 
-function mostrarModal(modal) {
-    modal.classList.add("show");
-}
-
-function cerrarCamara() {
-    const modal = document.getElementById("cameraModal");
-    modal.classList.remove("show");
-
-    if (html5QrCode) {
-        html5QrCode.stop().then(() => {
-            console.log("Escáner detenido");
-        }).catch((err) => {
-            console.error("Error al detener el escáner:", err);
-        });
-    }
-}
-
-function procesarQr(decodedText) {
-    try {
-        const qrUrl = new URL(decodedText);
-        const cdcid = qrUrl.searchParams.get("Id");
-
-        const currentParams = new URLSearchParams(window.location.search);
-        const qrId = currentParams.get("qr_id");
-        const appSession = currentParams.get("app_session");
-
-        if (!cdcid || !qrId || !appSession) {
-            alert("Faltan datos requeridos (Id, qr_id o app_session).");
-            return;
-        }
-
-        alert("ID capturado: " + cdcid);
-
-        fetch("https://qr-api-production-adac.up.railway.app/qr/guardar-cdc", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                cdc_id: cdcid,
-                qr_id: qrId,
-                app_session: appSession
-            })
-        })
-        .then(res => res.json())
-        .then(data => {
-            alert("ID guardado y enviado correctamente.");
-        })
-        .catch(err => {
-            alert("Error al enviar el ID: " + err.message);
-        });
-
-        html5QrCode.stop().then(() => {
-            cerrarCamara();
-        });
-
-    } catch (e) {
-        alert("Error al procesar el QR: " + e.message);
-    }
+function getAspectRatio() {
+  const width = window.innerWidth;
+  const height = window.innerHeight;
+  return width > height ? width / height : height / width;
 }
