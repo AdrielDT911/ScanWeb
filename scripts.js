@@ -3,10 +3,15 @@ document.addEventListener("DOMContentLoaded", () => {
   const qrId = params.get('qr_id');
   const appSession = params.get('app_session');
 
-  if (!qrId || !appSession) {
-    alert("Faltan parámetros en la URL (qr_id o app_session).");
-    return;
-  }
+  if (!qrId) {
+  alert("Parámetro faltante: qr_id");
+  return;
+}
+
+if (!appSession) {
+  alert("Parámetro faltante: app_session");
+  return;
+}
 
   iniciarEscaneoDirecto(qrId, appSession);
   iniciarEscaneoTexto(qrId, appSession);
