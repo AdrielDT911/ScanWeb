@@ -6,27 +6,24 @@
 
 body {
   background-color: #000;
+  color: white;
   display: flex;
   justify-content: center;
   align-items: center;
   height: 100vh;
+  flex-direction: column;
 }
 
 .scanner-container {
-  width: 100%;
-  max-width: 640px;
-  padding: 0;
-  margin: 0;
+  text-align: center;
 }
 
-.qr-reader-directo {
-  width: 100%;
-  height: auto;
-  position: relative;
-}
-
-/* ✅ Estilo del contorno verde al escanear */
-.scan-success canvas {
-  border: 4px solid limegreen !important;
-  border-radius: 10px;
+input[type="file"] {
+  margin-top: 20px;
+  padding: 10px;
+  background: #222;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
 }
