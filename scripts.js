@@ -24,7 +24,7 @@ function iniciarEscaneoDirecto(qrId, sessionId) {
       fps: 10,
       qrbox: {
         width: 360,
-        height: 200,
+        height: 150,
         drawOutline: true
       },
       aspectRatio: getAspectRatio(),
