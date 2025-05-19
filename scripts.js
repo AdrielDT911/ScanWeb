@@ -23,7 +23,7 @@ function iniciarEscaneoDirecto(qrId, sessionId) {
     {
       fps: 10,
       qrbox: {
-        width: 250,
+        width: 360,
         height: 200,
         drawOutline: true
       },
@@ -153,7 +153,7 @@ function iniciarEscaneoTexto(qrId, sessionId) {
             }
           }).catch(err => console.error("OCR error:", err));
         }
-      }, 3000);
+      }, 1000);
     })
     .catch(err => {
       alert("Error al acceder a la cámara para OCR: " + err.message);
