@@ -12,73 +12,59 @@ document.addEventListener("DOMContentLoaded", () => {
   iniciarEscaneoTexto(qrId, sessionId);
 });
 
-// Cambié esta función para usar zxing-js UMD
 function iniciarEscaneoDirecto(qrId, sessionId) {
-  const qrReaderDiv = document.getElementById("qr-reader");
-  qrReaderDiv.innerHTML = '';
-
+  const qrReader = document.getElementById("qr-reader");
   const codeReader = new ZXing.BrowserMultiFormatReader();
 
   let scanned = false;
 
-  codeReader
-    .listVideoInputDevices()
-    .then(videoInputDevices => {
-      const firstDeviceId = videoInputDevices.find(device =>
-        device.label.toLowerCase().includes('back') || device.label.toLowerCase().includes('rear')
-      )?.deviceId || videoInputDevices[0].deviceId;
+  const constraints = {
+    video: {
+      facingMode: { exact: "environment" }
+    }
+  };
 
-      codeReader.decodeFromVideoDevice(firstDeviceId, "qr-reader", (result, err) => {
-        if (result && !scanned) {
-          scanned = true;
-          qrReaderDiv.classList.add("scan-success");
+  codeReader.decodeFromConstraints({ video: constraints }, "qr-reader", (result, err) => {
+    if (result && !scanned) {
+      scanned = true;
+      qrReader.classList.add("scan-success");
 
-          try {
-            const decodedText = result.getText();
-            const qrUrl = new URL(decodedText);
-            const cdcid = qrUrl.searchParams.get("Id");
+      try {
+        const qrUrl = new URL(result.getText());
+        const cdcid = qrUrl.searchParams.get("Id");
 
-            if (!cdcid || !qrId || !sessionId) {
-              alert("No se encontró un ID, qr_id o session_id válido.");
-              return;
-            }
-
-            console.log("ID capturado: " + cdcid);
-
-            fetch("https://qr-api-production-adac.up.railway.app/qr/guardar-cdc", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                cdc_id: cdcid,
-                qr_id: parseInt(qrId),
-                session_id: sessionId
-              })
-            })
-            .then(res => res.json())
-            .then(data => {
-              alert("ID guardado y enviado correctamente.");
-            })
-            .catch(err => {
-              alert("Error al enviar el ID: " + err.message);
-            });
-
-            codeReader.reset();
-          } catch (e) {
-            alert("Error procesando el código QR.");
-          }
+        if (!cdcid || !qrId || !sessionId) {
+          alert("No se encontró un ID, qr_id o session_id válido.");
+          return;
         }
-        if (err && !(err instanceof ZXing.NotFoundException)) {
-          console.error(err);
-        }
-      });
-    })
-    .catch(err => {
-      console.error("Error al iniciar cámara: ", err);
-    });
 
-  window.addEventListener("orientationchange", () => {
-    codeReader.reset();
-    iniciarEscaneoDirecto(qrId, sessionId);
+        console.log("ID capturado: " + cdcid);
+
+        fetch("https://qr-api-production-adac.up.railway.app/qr/guardar-cdc", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            cdc_id: cdcid,
+            qr_id: parseInt(qrId),
+            session_id: sessionId
+          })
+        })
+          .then(res => res.json())
+          .then(data => {
+            alert("ID guardado y enviado correctamente.");
+          })
+          .catch(err => {
+            alert("Error al enviar el ID: " + err.message);
+          });
+
+        codeReader.reset();
+      } catch (e) {
+        alert("URL no válida: " + e.message);
+      }
+    }
+  }).catch(err => {
+    console.error("Error al iniciar cámara:", err);
+    alert("Error al acceder a la cámara: " + err.message);
   });
 }
 
