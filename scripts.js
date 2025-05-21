@@ -1,5 +1,3 @@
-import { BrowserMultiFormatReader } from 'https://cdn.jsdelivr.net/npm/@zxing/browser@0.0.12/esm/index.min.js';
-
 document.addEventListener("DOMContentLoaded", () => {
   const params = new URLSearchParams(window.location.search);
   const qrId = params.get('qr_id');
@@ -14,18 +12,18 @@ document.addEventListener("DOMContentLoaded", () => {
   iniciarEscaneoTexto(qrId, sessionId);
 });
 
+// Cambié esta función para usar zxing-js UMD
 function iniciarEscaneoDirecto(qrId, sessionId) {
   const qrReaderDiv = document.getElementById("qr-reader");
-  qrReaderDiv.innerHTML = ''; // Limpiar contenido previo
+  qrReaderDiv.innerHTML = '';
 
-  const codeReader = new BrowserMultiFormatReader();
+  const codeReader = new ZXing.BrowserMultiFormatReader();
 
   let scanned = false;
 
   codeReader
     .listVideoInputDevices()
     .then(videoInputDevices => {
-      // Buscar cámara trasera (environment)
       const firstDeviceId = videoInputDevices.find(device =>
         device.label.toLowerCase().includes('back') || device.label.toLowerCase().includes('rear')
       )?.deviceId || videoInputDevices[0].deviceId;
