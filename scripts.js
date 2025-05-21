@@ -1,7 +1,9 @@
+import { BrowserMultiFormatReader } from 'https://cdn.jsdelivr.net/npm/@zxing/browser@0.0.12/esm/index.min.js';
+
 document.addEventListener("DOMContentLoaded", () => {
   const params = new URLSearchParams(window.location.search);
   const qrId = params.get('qr_id');
-  const sessionId = params.get('session_id'); // 🆕
+  const sessionId = params.get('session_id');
 
   if (!qrId || !sessionId) {
     alert("QR_ID o SESSION_ID no encontrado en la URL.");
@@ -13,84 +15,72 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 function iniciarEscaneoDirecto(qrId, sessionId) {
-  const qrReader = document.getElementById("qr-reader");
-  const html5QrCode = new Html5Qrcode("qr-reader");
+  const qrReaderDiv = document.getElementById("qr-reader");
+  qrReaderDiv.innerHTML = ''; // Limpiar contenido previo
+
+  const codeReader = new BrowserMultiFormatReader();
 
   let scanned = false;
 
-  html5QrCode.start(
-    { facingMode: "environment" },
-    {
-      fps: 10,
-      qrbox: {
-        width: 370,
-        height: 200,
-        drawOutline: true
-      },
-      aspectRatio: getAspectRatio(),
-      disableFlip: true
-    },
-    (decodedText, decodedResult) => {
-      if (scanned) return;
-      scanned = true;
-      qrReader.classList.add("scan-success");
+  codeReader
+    .listVideoInputDevices()
+    .then(videoInputDevices => {
+      // Buscar cámara trasera (environment)
+      const firstDeviceId = videoInputDevices.find(device =>
+        device.label.toLowerCase().includes('back') || device.label.toLowerCase().includes('rear')
+      )?.deviceId || videoInputDevices[0].deviceId;
 
-      const qrUrl = new URL(decodedText);
-      const cdcid = qrUrl.searchParams.get("Id");
+      codeReader.decodeFromVideoDevice(firstDeviceId, "qr-reader", (result, err) => {
+        if (result && !scanned) {
+          scanned = true;
+          qrReaderDiv.classList.add("scan-success");
 
-      if (!cdcid || !qrId || !sessionId) {
-        alert("No se encontró un ID, qr_id o session_id válido.");
-        return;
-      }
+          try {
+            const decodedText = result.getText();
+            const qrUrl = new URL(decodedText);
+            const cdcid = qrUrl.searchParams.get("Id");
 
-      console.log("ID capturado: " + cdcid);
+            if (!cdcid || !qrId || !sessionId) {
+              alert("No se encontró un ID, qr_id o session_id válido.");
+              return;
+            }
 
-      fetch("https://qr-api-production-adac.up.railway.app/qr/guardar-cdc", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          cdc_id: cdcid,
-          qr_id: parseInt(qrId),
-          session_id: sessionId
-        })
-      })
-        .then(res => res.json())
-        .then(data => {
-          alert("ID guardado y enviado correctamente.");
-        })
-        .catch(err => {
-          alert("Error al enviar el ID: " + err.message);
-        });
+            console.log("ID capturado: " + cdcid);
 
-      html5QrCode.stop().then(() => {
-        console.log("Escáner detenido");
+            fetch("https://qr-api-production-adac.up.railway.app/qr/guardar-cdc", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                cdc_id: cdcid,
+                qr_id: parseInt(qrId),
+                session_id: sessionId
+              })
+            })
+            .then(res => res.json())
+            .then(data => {
+              alert("ID guardado y enviado correctamente.");
+            })
+            .catch(err => {
+              alert("Error al enviar el ID: " + err.message);
+            });
+
+            codeReader.reset();
+          } catch (e) {
+            alert("Error procesando el código QR.");
+          }
+        }
+        if (err && !(err instanceof ZXing.NotFoundException)) {
+          console.error(err);
+        }
       });
-    },
-    (errorMessage) => {
-      console.log("Error escaneo: ", errorMessage);
-    }
-  ).catch(err => {
-    console.error("Error al iniciar cámara: ", err);
-  });
+    })
+    .catch(err => {
+      console.error("Error al iniciar cámara: ", err);
+    });
 
   window.addEventListener("orientationchange", () => {
-    html5QrCode.stop().then(() => {
-      html5QrCode.start(
-        { facingMode: "environment" },
-        {
-          fps: 10,
-          qrbox: {
-            width: 370,
-            height: 200,
-            drawOutline: true
-          },
-          aspectRatio: getAspectRatio(),
-          disableFlip: true
-        },
-        () => {},
-        () => {}
-      );
-    });
+    codeReader.reset();
+    iniciarEscaneoDirecto(qrId, sessionId);
   });
 }
 
