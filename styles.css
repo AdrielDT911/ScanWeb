@@ -25,6 +25,14 @@ body {
   position: relative;
 }
 
+#qr-reader {
+  width: 100%;
+  height: 100%; /* O por lo menos 400px */
+  min-height: 400px;
+  background-color: #111; /* para ver el área */
+}
+
+
 /* ✅ Estilo del contorno verde al escanear */
 .scan-success canvas {
   border: 4px solid limegreen !important;
