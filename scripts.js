@@ -15,57 +15,58 @@ document.addEventListener("DOMContentLoaded", () => {
 function iniciarEscaneoDirecto(qrId, sessionId) {
   const qrReader = document.getElementById("qr-reader");
   const codeReader = new ZXing.BrowserMultiFormatReader();
-
   let scanned = false;
 
-  const constraints = {
-    video: {
-      facingMode: { exact: "environment" }
-    }
-  };
+  navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+    .then(stream => {
+      qrReader.srcObject = stream;
+      qrReader.play();
 
-  codeReader.decodeFromConstraints({ video: constraints }, "qr-reader", (result, err) => {
-    if (result && !scanned) {
-      scanned = true;
-      qrReader.classList.add("scan-success");
+      codeReader.decodeFromVideoDevice(null, qrReader, (result, err) => {
+        if (result && !scanned) {
+          scanned = true;
+          qrReader.classList.add("scan-success");
 
-      try {
-        const qrUrl = new URL(result.getText());
-        const cdcid = qrUrl.searchParams.get("Id");
+          try {
+            const qrUrl = new URL(result.getText());
+            const cdcid = qrUrl.searchParams.get("Id");
 
-        if (!cdcid || !qrId || !sessionId) {
-          alert("No se encontró un ID, qr_id o session_id válido.");
-          return;
+            if (!cdcid || !qrId || !sessionId) {
+              alert("No se encontró un ID, qr_id o session_id válido.");
+              return;
+            }
+
+            console.log("ID capturado: " + cdcid);
+
+            fetch("https://qr-api-production-adac.up.railway.app/qr/guardar-cdc", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                cdc_id: cdcid,
+                qr_id: parseInt(qrId),
+                session_id: sessionId
+              })
+            })
+            .then(res => res.json())
+            .then(data => {
+              alert("ID guardado y enviado correctamente.");
+            })
+            .catch(err => {
+              alert("Error al enviar el ID: " + err.message);
+            });
+
+            codeReader.reset();
+            stream.getTracks().forEach(track => track.stop());
+          } catch (e) {
+            alert("URL no válida: " + e.message);
+          }
         }
-
-        console.log("ID capturado: " + cdcid);
-
-        fetch("https://qr-api-production-adac.up.railway.app/qr/guardar-cdc", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            cdc_id: cdcid,
-            qr_id: parseInt(qrId),
-            session_id: sessionId
-          })
-        })
-          .then(res => res.json())
-          .then(data => {
-            alert("ID guardado y enviado correctamente.");
-          })
-          .catch(err => {
-            alert("Error al enviar el ID: " + err.message);
-          });
-
-        codeReader.reset();
-      } catch (e) {
-        alert("URL no válida: " + e.message);
-      }
-    }
-  }).catch(err => {
-    console.error("Error al iniciar cámara:", err);
-    alert("Error al acceder a la cámara: " + err.message);
-  });
+      });
+    })
+    .catch(err => {
+      console.error("Error al acceder a la cámara:", err);
+      alert("Error al acceder a la cámara: " + err.message);
+    });
 }
 
 function iniciarEscaneoTexto(qrId, sessionId) {
@@ -132,10 +133,4 @@ function iniciarEscaneoTexto(qrId, sessionId) {
     .catch(err => {
       alert("Error al acceder a la cámara para OCR: " + err.message);
     });
-}
-
-function getAspectRatio() {
-  const width = window.innerWidth;
-  const height = window.innerHeight;
-  return width > height ? width / height : height / width;
 }
