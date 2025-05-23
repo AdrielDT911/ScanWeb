@@ -21,13 +21,11 @@ body {
 
 .qr-reader-directo {
   width: 100%;
-  height: 100%;
-  min-height: 400px;
-  position: relative;
+  height: auto;
   background-color: #111;
 }
 
-.scan-success video {
+.scan-success {
   border: 4px solid limegreen !important;
   border-radius: 10px;
 }
