@@ -40,7 +40,7 @@ function iniciarEscaneoDirecto(qrId, sessionId) {
 
             //fetch("https://qr-api-production-adac.up.railway.app/qr/guardar-cdc", {
             //fetch("https://qr-api-wer7.onrender.com/qr/guardar-cdc", {  
-            fetch("http://192.168.5.56:8010/qr/guardar-cdc", {
+            fetch("http://192.168.5.69:8010/qr/guardar-cdc", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
@@ -107,7 +107,8 @@ function iniciarEscaneoTexto(qrId, sessionId) {
 
               console.log("Código CDC detectado: " + cdcid);
 
-              fetch("https://qr-api-wer7.onrender.com/qr/guardar-cdc", {
+              //fetch("https://qr-api-wer7.onrender.com/qr/guardar-cdc", {
+              fetch("http://192.168.5.69:8010/qr/guardar-cdc", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
